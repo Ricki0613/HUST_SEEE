@@ -16,7 +16,11 @@
 
 ### 课程笔记
 
-- 电气工程基础：[公开 Notion 课程笔记](https://app.notion.com/p/ricki-office/3f0332be06548134a6aee73a6c4e0954)
+我自己在Notion中整理的课程笔记，一般包括逐章节知识点归纳与讲解和期末复习专题笔记等等。
+
+- 微控制器原理及其应用（单片机）：[微控制器Notion笔记](https://ricki-office.notion.site/41d332be06548044aac5c772b53908a7)
+
+- 电气工程基础：[电工基Notion笔记](https://ricki-office.notion.site/3f0332be06548134a6aee73a6c4e0954)
 
 ### 课程教材
 
