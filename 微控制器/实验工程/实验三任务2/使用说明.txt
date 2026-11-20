@@ -1,0 +1,45 @@
+实验三任务2 使用说明
+（50 Hz 正弦波在不同采样率下的峰峰值测量）
+
+一、打开工程
+用Keil uVision打开 USER\Lab3_Task2.uvprojx，执行Rebuild，再下载运行。
+芯片STM32F407ZG，沿用实验一的标准外设库、168 MHz系统时钟、8 MHz外部晶振。
+本机只有Arm Compiler 6.22，工程已选用该编译器，Pack沿用已安装的3.1.1。
+新写的C/H源码及本说明为GBK编码；Keil文本编码选Chinese GB2312 (Simplified)。
+不要把别的实验的OBJ文件复制到这里，应重新编译本工程。
+
+二、任务与接线
+信号发生器输出正弦波：频率 50 Hz，Vp-p = 2 V，直流偏置 1.0 V，即 0~2 V。
+先用示波器直流耦合确认幅值和偏置，再把输出接 PA4（板上丝印 STM_DAC），地接开发板 GND。
+PA4 同时接在 OLED/CAMERA 接口，本实验不要插 OLED 或摄像头模块。
+不要选 PA1：PA1 直接连 LAN8720 的 REFCLKO，一直在输出 50 MHz 时钟，不能做模拟输入。
+输入电压必须在 0~3.3 V，交流信号必须带直流偏置（片内 ADC 是单极性）。
+USART1 用 PA9(TX)、PA10(RX)，串口助手设 115200、8数据位、无校验、1停止位、无流控。
+
+三、采样率设置
+TIM2 挂 APB1：PCLK1=42 MHz，定时器时钟 84 MHz。
+PSC 固定为 83，计数频率 84/(83+1)=1 MHz，每个计数 1 us。
+ARR 决定采样间隔：fs=1 kHz 时 ARR=999；fs=10 kHz 时 ARR=99。
+TIM2_SetSampleRate(fs) 直接算 ARR，公式 fs = 84 MHz/((PSC+1)(ARR+1))。
+TIM2 的更新事件选作 TRGO，送给 ADC1 作外部触发；每个更新周期触发一次转换。
+ADC 转换结束(EOC)进 ADC_IRQHandler，读 DR 存入 ADC_Buf[]，采满 400 点置 ADC_Done=1。
+采样间隔完全由定时器决定，中断里不加延时，实现严格等间隔采样。
+
+四、采样时间与转换时间
+ADC 采样时间取 480 周期，转换时间 (480+12) 个 ADCCLK = 492/21 MHz ≈ 23.4 us。
+1 kHz 的间隔 1000 us、10 kHz 的间隔 100 us，都远大于 23.4 us，不会漏点。
+50 Hz 周期 20 ms：1 kHz 时每周期采 20 点，400 点覆盖 20 个周期；
+10 kHz 时每周期采 200 点，400 点覆盖 2 个周期。
+
+五、结果与分析
+峰峰值码值 = max ? min；电压 Vpp = (max?min)*3300/4096 mV。
+vpp_1k、vpp_10k 存电压值(V)，vpp_1k_code、vpp_10k_code 存码值差，min_1k/max_1k 等存极值。
+1 kHz 时每周期只有 20 点，最坏情况采样点偏离峰顶 9°，漏掉 1?cos9° ≈ 1.2%，
+Vpp 会偏小约 24 mV；10 kHz 时每周期 200 点，偏差小于 0.03%，基本测到真峰值。
+程序每轮打印与 2000 mV 的偏差，用它和示波器读数比较两种采样率的结果。
+
+六、源码位置
+USER\main.c：采集流程、最大值最小值查找、Vpp 计算与输出。
+HARDWARE\ADC\adc.c：ADC1 定时器触发初始化、EOC 中断存数。
+HARDWARE\TIMER\timer.c：TIM2 采样定时器、ARR 计算、启动与停止。
+固件在 OBJ\Lab3_Task2.hex，调试文件 OBJ\Lab3_Task2.axf。

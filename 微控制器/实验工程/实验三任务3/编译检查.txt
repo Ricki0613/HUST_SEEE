@@ -1,0 +1,12 @@
+实验三任务3 编译检查
+
+已使用本机Keil uVision、Arm Compiler 6.22执行完整Rebuild。
+芯片：STM32F407ZG
+Pack：Keil.STM32F4xx_DFP.3.1.1
+结果：0 Error(s), 0 Warning(s)
+Program Size: Code=32862 RO-data=6838 RW-data=12 ZI-data=3572
+固件：Rebuild 后生成 OBJ\Lab3_Task3.hex、OBJ\Lab3_Task3.axf
+工程目录已清理编译中间文件，OBJ 为空目录，打开工程执行 Rebuild 即可重新生成。
+
+这里只确认工程成功编译和链接。尚未替你下载到开发板，
+LCD 显示数值、直流平均值和交流峰峰值仍需接实际信号测量。

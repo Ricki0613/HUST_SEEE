@@ -1,0 +1,46 @@
+实验三任务3 使用说明
+（双独立 ADC 采样：ADC1 测直流、ADC2 测交流，LCD 显示）
+
+一、打开工程
+用Keil uVision打开 USER\Lab3_Task3.uvprojx，执行Rebuild，再下载运行。
+芯片STM32F407ZG，沿用实验一的标准外设库、168 MHz系统时钟、8 MHz外部晶振。
+本机只有Arm Compiler 6.22，工程已选用该编译器，Pack沿用已安装的3.1.1。
+新写的C/H源码及本说明为GBK编码；Keil文本编码选Chinese GB2312 (Simplified)。
+LCD 驱动取自标准例程实验13，只把 FONT.H 改名为 font.h（源文件里写的是 font.h）。
+
+二、任务与方式
+任务3 二选一：方式A 单 ADC 多通道扫描；方式B ADC1、ADC2 独立模式，不使用双重 ADC 同步。
+本工程实现方式B：ADC1 测直流，ADC2 测交流。
+配置：12 位、右对齐、采样率 10 kHz、每通道采集 400 点，计算直流平均值和交流峰峰值，LCD 显示数值和单位。
+
+三、接线（通道选 CH5、CH4，原因如下）
+指导书要求 CH0 测直流、CH1 测交流，但这块板：
+  PA0(CH0) 接 WK_UP 按键；
+  PA1(CH1) 直接连 LAN8720 的 REFCLKO，50 MHz 时钟一直存在，不能做模拟输入。
+所以改用两个多功能端口，转换通道号相应改为 CH5、CH4：
+  ADC1 通道5 = PA5（板上 STM_ADC）：接直流电源 1.00 V，负端接 GND。必须拔掉 P12 跳线帽。
+  ADC2 通道4 = PA4（板上 STM_DAC）：接 50 Hz、Vp-p=2 V、偏置 1.0 V 正弦波，地接 GND。
+  两块信号源都要与开发板共地，输入范围 0~3.3 V。
+若你手上的板子 CH0/CH1 确实空闲，只改 HARDWARE\ADC\adc.h 中的
+ADC_DC_PIN / ADC_DC_CHANNEL 和 ADC_AC_PIN / ADC_AC_CHANNEL 四行即可。
+
+四、程序结构
+TIM2：PSC=83，ARR=99，1 MHz 计数，10 kHz 更新，更新事件作 TRGO 同时触发两个 ADC。
+ADC1、ADC2：独立模式（ADC_Mode_Independent），12 位，右对齐，单次转换，480 周期采样，触发源 T2_TRGO。
+两个 ADC 共用中断向量 ADC_IRQHandler，中断里分别判断各自 EOC，各读各的 DR，
+存到 ADC_DC_Buf[]、ADC_AC_Buf[]；各自采满 400 点后关掉自己的 EOC 中断，两路都满则 ADC_AllDone=1。
+主循环等到 ADC_AllDone 后停 TIM2，再计算和刷新显示，每 0.5 s 一轮。
+
+五、计算与显示
+直流：400 点求和取平均得 dc_code_avg，电压 V = code*3300/4096。
+交流：查最大值、最小值，vpp_code = max ? min，Vpp = (max?min)*3300/4096。
+LCD 显示：DC 电压、AC 峰峰值（均带单位 V），另有平均码值、最大最小码值。
+串口同步输出同样内容，方便写实验报告。
+1.00 V 直流对应码值约 1241，Vpp 2 V 对应码值差约 2482，可据此判断读数是否合理。
+
+六、源码位置
+USER\main.c：采集流程、平均值与峰峰值计算、LCD 与串口显示。
+HARDWARE\ADC\adc.c：两个 ADC 的初始化和共用中断处理。
+HARDWARE\TIMER\timer.c：TIM2 采样定时器。
+HARDWARE\LCD\lcd.c、lcd.h、font.h：标准例程的液晶驱动。
+固件在 OBJ\Lab3_Task3.hex，调试文件 OBJ\Lab3_Task3.axf。
